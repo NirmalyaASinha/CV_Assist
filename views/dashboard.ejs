@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title><%= title %></title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="page">
+      <header class="dashboard-header">
+        <div>
+          <p class="eyebrow">Student Workspace</p>
+          <h1><%= title %></h1>
+          <p class="lead">Upload your CV and explore suggested companies.</p>
+        </div>
+        <a class="btn ghost" href="/">Back</a>
+      </header>
+
+      <section class="panel">
+        <h2>Upload CV</h2>
+        <form class="upload" action="/upload" method="post" enctype="multipart/form-data">
+          <label class="upload-box">
+            <span>Drop your CV here or click to upload</span>
+            <input type="file" name="cv" accept=".pdf,.doc,.docx" />
+          </label>
+          <button class="btn primary" type="submit">Upload</button>
+        </form>
+        <p class="hint">Upload handling will be connected once the backend is finalized.</p>
+      </section>
+
+      <section class="panel">
+        <h2>Suggested Companies</h2>
+        <div class="company-grid">
+          <% companies.forEach((company) => { %>
+            <div class="company-card">
+              <h3><%= company %></h3>
+              <p>Explore openings and apply once matched.</p>
+              <button class="btn ghost" type="button">View Details</button>
+            </div>
+          <% }) %>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>
