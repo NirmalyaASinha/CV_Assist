@@ -440,6 +440,7 @@ const getCvAnalysis = async (id) => {
     summary: row.summary || "",
     feedbackHighlights: row.feedback_highlights || [],
     searchQuery: row.search_query || "",
+    extractedText: row.extracted_text || "",
     createdAt: row.created_at
   };
 };
@@ -518,6 +519,22 @@ app.get("/results", async (req, res) => {
     feedbackHighlights: analysis?.feedbackHighlights || [],
     dbErrorMessage: dbState.available ? "" : dbState.errorMessage
   });
+});
+
+app.get("/api/cv-analysis", async (req, res) => {
+  try {
+    const analysis = await getCvAnalysis(typeof req.query.session === "string" ? req.query.session : "");
+    if (!analysis) {
+      return res.status(404).json({ error: "No CV analysis found for that session." });
+    }
+
+    return res.json({
+      data: analysis
+    });
+  } catch (error) {
+    markDatabaseUnavailable(error);
+    return res.status(503).json({ error: dbState.errorMessage });
+  }
 });
 
 app.post("/upload", upload.single("cv"), async (req, res) => {
@@ -725,12 +742,16 @@ const start = async () => {
     markDatabaseUnavailable(error);
   }
 
-  app.listen(port, () => {
-    console.log(`CV Assist running on http://localhost:${port}`);
-  });
+  if (process.env.NODE_ENV !== "production") {
+    app.listen(port, () => {
+      console.log(`Running on http://localhost:${port}`);
+    });
+  }
 };
 
 start().catch((error) => {
   console.error("Failed to start server:", error?.message || error);
   process.exit(1);
 });
+
+export default app;
