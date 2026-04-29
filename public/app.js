@@ -19,6 +19,7 @@ const landingForm = document.getElementById("landingForm");
 const landingFileInput = landingForm?.querySelector('input[type="file"][name="cv"]');
 const uploadStatus = document.getElementById("uploadStatus");
 const processingOverlay = document.getElementById("processingOverlay");
+const processingMessage = document.getElementById("processingMessage");
 const landingError = document.getElementById("landingError");
 const sessionId = document.body?.dataset?.sessionId || "";
 
@@ -36,6 +37,13 @@ const COMPANY_TABS = {
 let activeCompanyTab = "all";
 let currentCompanyDetails = null;
 let companyFilterDebounceId = null;
+let processingMessageTimer = null;
+
+const PROCESSING_MESSAGES = [
+  "Finding your strongest matches and preparing AI insights.",
+  "Reading your CV and mapping it to relevant roles.",
+  "Almost there. Shortlisting companies that fit your profile."
+];
 
 const setLandingError = (message) => {
   if (!landingError) return;
@@ -53,6 +61,23 @@ const updateUploadStatus = () => {
     const textNode = uploadStatus.querySelector(".upload-status-text");
     if (textNode) textNode.textContent = `${fileName} uploaded`;
   }
+};
+
+const startProcessingMessageRotation = () => {
+  if (!processingMessage) return;
+
+  let index = 0;
+  processingMessage.textContent = PROCESSING_MESSAGES[index];
+  window.clearInterval(processingMessageTimer);
+  processingMessageTimer = window.setInterval(() => {
+    index = (index + 1) % PROCESSING_MESSAGES.length;
+    processingMessage.textContent = PROCESSING_MESSAGES[index];
+  }, 1800);
+};
+
+const stopProcessingMessageRotation = () => {
+  window.clearInterval(processingMessageTimer);
+  processingMessageTimer = null;
 };
 
 const fetchWithTimeout = async (url, options = {}, timeoutMs = UPLOAD_TIMEOUT_MS) => {
@@ -544,6 +569,7 @@ if (landingForm) {
     event.preventDefault();
     setLandingError("");
     if (processingOverlay) processingOverlay.hidden = false;
+    startProcessingMessageRotation();
 
     try {
       const formData = new FormData(landingForm);
@@ -569,6 +595,7 @@ if (landingForm) {
           : "Failed to process the uploaded CV.";
       setLandingError(message);
     } finally {
+      stopProcessingMessageRotation();
       if (processingOverlay) processingOverlay.hidden = true;
     }
   });
