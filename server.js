@@ -1,5 +1,6 @@
 import "dotenv/config";
 import express from "express";
+import { readFileSync } from "fs";
 import fs from "fs/promises";
 import os from "os";
 import path from "path";
@@ -8,6 +9,7 @@ import { promisify } from "util";
 import { fileURLToPath } from "url";
 import { MongoClient, ObjectId } from "mongodb";
 import multer from "multer";
+import { PDFParse } from "pdf-parse";
 import { DOMAIN_TAXONOMY, normalizeDomain, scoreCompanyMatch } from "./lib/matching.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -301,11 +303,11 @@ const decodeXmlText = (value) =>
     .trim();
 
 const extractPdfText = async (filePath) => {
-  const { stdout } = await execFileAsync("pdftotext", ["-layout", filePath, "-"], {
-    maxBuffer: 20 * 1024 * 1024,
-    timeout: CV_EXTRACTION_TIMEOUT_MS
-  });
-  return stdout.trim();
+  const fileBuffer = readFileSync(filePath);
+  const parser = new PDFParse({ data: fileBuffer });
+  const data = await parser.getText();
+  await parser.destroy();
+  return String(data.text || "").trim();
 };
 
 const extractDocxText = async (filePath) => {
