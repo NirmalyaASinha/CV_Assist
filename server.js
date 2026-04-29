@@ -1,6 +1,5 @@
 import "dotenv/config";
 import express from "express";
-import { readFileSync } from "fs";
 import fs from "fs/promises";
 import os from "os";
 import path from "path";
@@ -9,7 +8,7 @@ import { promisify } from "util";
 import { fileURLToPath } from "url";
 import { MongoClient, ObjectId } from "mongodb";
 import multer from "multer";
-import { PDFParse } from "pdf-parse";
+import pdfParse from "pdf-parse/lib/pdf-parse.js";
 import { DOMAIN_TAXONOMY, normalizeDomain, scoreCompanyMatch } from "./lib/matching.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -68,7 +67,7 @@ const inMemoryDb = {
 let useInMemoryFallback = false;
 
 const upload = multer({
-  dest: path.join(os.tmpdir(), "cv-assist-uploads"),
+  storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 }
 });
 
@@ -302,35 +301,39 @@ const decodeXmlText = (value) =>
     .replace(/\s+/g, " ")
     .trim();
 
-const extractPdfText = async (filePath) => {
-  const fileBuffer = readFileSync(filePath);
-  const parser = new PDFParse({ data: fileBuffer });
-  const data = await parser.getText();
-  await parser.destroy();
+const extractPdfText = async (fileBuffer) => {
+  const data = await pdfParse(fileBuffer);
   return String(data.text || "").trim();
 };
 
-const extractDocxText = async (filePath) => {
-  const { stdout } = await execFileAsync("unzip", ["-p", filePath, "word/document.xml"], {
-    maxBuffer: 20 * 1024 * 1024,
-    timeout: CV_EXTRACTION_TIMEOUT_MS
-  });
-  return decodeXmlText(stdout);
+const extractDocxText = async (fileBuffer) => {
+  const tempPath = path.join(os.tmpdir(), `cv-assist-${Date.now()}-${Math.random().toString(36).slice(2)}.docx`);
+
+  try {
+    await fs.writeFile(tempPath, fileBuffer);
+    const { stdout } = await execFileAsync("unzip", ["-p", tempPath, "word/document.xml"], {
+      maxBuffer: 20 * 1024 * 1024,
+      timeout: CV_EXTRACTION_TIMEOUT_MS
+    });
+    return decodeXmlText(stdout);
+  } finally {
+    await fs.unlink(tempPath).catch(() => {});
+  }
 };
 
 const extractCvText = async (file) => {
   const extension = path.extname(file.originalname || "").toLowerCase();
 
   if (extension === ".pdf") {
-    return extractPdfText(file.path);
+    return extractPdfText(file.buffer);
   }
 
   if (extension === ".docx") {
-    return extractDocxText(file.path);
+    return extractDocxText(file.buffer);
   }
 
   if (extension === ".txt" || extension === ".md") {
-    const contents = await fs.readFile(file.path, { encoding: "utf8" });
+    const contents = Buffer.from(file.buffer || "").toString("utf8");
     return String(contents || "").trim();
   }
 
