@@ -7,40 +7,95 @@
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
-    <main class="page">
-      <header class="dashboard-header">
-        <div>
-          <p class="eyebrow">Student Workspace</p>
-          <h1><%= title %></h1>
-          <p class="lead">Upload your CV and explore suggested companies.</p>
-        </div>
-        <a class="btn ghost" href="/">Back</a>
+    <div class="shell">
+      <header class="topbar">
+        <div class="logo">SASET × RRU</div>
+        <nav class="nav">
+          <a href="/dashboard" class="nav-link">Dashboard</a>
+          <a href="/" class="nav-link">Help</a>
+        </nav>
       </header>
 
-      <section class="panel">
-        <h2>Upload CV</h2>
-        <form class="upload" action="/upload" method="post" enctype="multipart/form-data">
-          <label class="upload-box">
-            <span>Drop your CV here or click to upload</span>
-            <input type="file" name="cv" accept=".pdf,.doc,.docx" />
-          </label>
-          <button class="btn primary" type="submit">Upload</button>
-        </form>
-        <p class="hint">Upload handling will be connected once the backend is finalized.</p>
-      </section>
+      <main class="dashboard">
+        <aside class="sidebar">
+          <p class="eyebrow">Navigation</p>
+          <a class="side-link" href="#upload">Upload CV</a>
+          <a class="side-link" href="#companies">Companies</a>
+          <a class="side-link" href="#feedback">Feedback</a>
+        </aside>
 
-      <section class="panel">
-        <h2>Suggested Companies</h2>
-        <div class="company-grid">
-          <% companies.forEach((company) => { %>
-            <div class="company-card">
-              <h3><%= company %></h3>
-              <p>Explore openings and apply once matched.</p>
-              <button class="btn ghost" type="button">View Details</button>
+        <section class="content">
+          <header class="content-header">
+            <div>
+              <p class="eyebrow">Student Workspace</p>
+              <h1 class="page-title"><%= title %></h1>
+              <p class="lead">Upload your CV and explore suggested companies.</p>
             </div>
-          <% }) %>
-        </div>
-      </section>
-    </main>
+          </header>
+
+          <section class="panel" id="upload">
+            <p class="section-label">Upload CV</p>
+            <form class="upload" action="/upload" method="post" enctype="multipart/form-data">
+              <label class="upload-box">
+                <span>Drop your CV here or click to upload</span>
+                <input type="file" name="cv" accept=".pdf,.doc,.docx" />
+              </label>
+              <button class="btn primary" type="submit">Upload</button>
+            </form>
+            <p class="hint">Upload handling will be connected once the backend is finalized.</p>
+          </section>
+
+          <section class="panel" id="companies">
+            <div class="panel-row">
+              <div>
+                <p class="section-label">Suggested Companies</p>
+                <h2 class="section-title">Companies</h2>
+              </div>
+              <form class="filters" id="companyFilters">
+                <input class="input" type="text" name="q" placeholder="Search company name" />
+                <input class="input" type="text" name="location" placeholder="Location" />
+                <input class="input" type="text" name="status" placeholder="Status" />
+                <button class="btn secondary" type="submit">Filter</button>
+              </form>
+            </div>
+
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Company</th>
+                    <th>Location</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="companyRows">
+                  <% companies.forEach((company) => { %>
+                    <tr>
+                      <td><%= company %></td>
+                      <td>-</td>
+                      <td>-</td>
+                      <td><button class="btn link" type="button">View</button></td>
+                    </tr>
+                  <% }) %>
+                </tbody>
+              </table>
+            </div>
+            <p class="hint" id="companyEmpty">No companies loaded yet.</p>
+          </section>
+
+          <section class="panel" id="feedback">
+            <p class="section-label">CV Feedback</p>
+            <h2 class="section-title">Improve your CV</h2>
+            <form class="feedback" id="feedbackForm">
+              <textarea class="textarea" name="cvText" rows="5" placeholder="Paste your CV text here..."></textarea>
+              <button class="btn link" type="submit">Get Feedback →</button>
+            </form>
+            <div class="feedback-result" id="feedbackResult"></div>
+          </section>
+        </section>
+      </main>
+    </div>
+    <script src="/app.js"></script>
   </body>
 </html>

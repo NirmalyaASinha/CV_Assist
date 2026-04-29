@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title><%= title %></title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body class="results" data-session-id="<%= sessionId %>">
+    <header class="topbar">
+      <div class="logo-stack">
+        <img class="logo-img" src="/assets/SASET.png" alt="SASET" />
+        <img class="logo-img" src="/assets/RRU.png" alt="RRU" />
+      </div>
+      <nav class="nav">
+        <a href="/" class="nav-link">Home</a>
+        <a href="#companies" class="nav-link">Companies</a>
+      </nav>
+      <div class="logo-spacer"></div>
+    </header>
+
+    <div class="shell">
+      <main class="dashboard results-dashboard">
+        <section class="results-header">
+          <div class="results-title-block">
+            <p class="section-label">Your CV Analysis</p>
+            <h1 class="page-title">Match Results</h1>
+          </div>
+          <a href="/" class="btn secondary">← Upload Another CV</a>
+        </section>
+
+        <section class="analysis-section">
+          <article class="analysis-hero">
+            <div class="analysis-hero-content">
+              <h2 class="analysis-domain"><%= detectedDomain %></h2>
+              <p class="analysis-summary"><%= detectedSummary %></p>
+            </div>
+          </article>
+
+          <div class="analysis-grid">
+            <article class="analysis-card">
+              <div class="card-icon">🎯</div>
+              <h3>Top Keywords</h3>
+              <div class="chip-row">
+                <% if (detectedKeywords.length) { %>
+                  <% detectedKeywords.slice(0, 5).forEach((keyword) => { %>
+                    <span class="chip"><%= keyword %></span>
+                  <% }) %>
+                <% } else { %>
+                  <span class="hint">Upload a CV to see keywords</span>
+                <% } %>
+              </div>
+            </article>
+
+            <article class="analysis-card">
+              <div class="card-icon">💼</div>
+              <h3>Suggested Roles</h3>
+              <div class="chip-row">
+                <% if (suggestedRoles.length) { %>
+                  <% suggestedRoles.slice(0, 5).forEach((role) => { %>
+                    <span class="chip"><%= role %></span>
+                  <% }) %>
+                <% } else { %>
+                  <span class="hint">Roles appear after analysis</span>
+                <% } %>
+              </div>
+            </article>
+
+            <article class="analysis-card">
+              <div class="card-icon">📋</div>
+              <h3>Quick Insights</h3>
+              <ul class="insight-list">
+                <% if (feedbackHighlights.length) { %>
+                  <% feedbackHighlights.slice(0, 3).forEach((item) => { %>
+                    <li><%= item %></li>
+                  <% }) %>
+                <% } else { %>
+                  <li>Insights appear after CV upload</li>
+                <% } %>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <% if (dbErrorMessage) { %>
+          <section class="panel">
+            <p class="error-banner"><%= dbErrorMessage %></p>
+          </section>
+        <% } %>
+
+        <section class="companies-section" id="companies">
+          <div class="section-header section-header--stacked">
+            <div>
+              <p class="section-label">Matched Opportunities</p>
+              <h2 class="section-title">Companies Hiring Now</h2>
+              <p class="section-hint">Switch between tab views, filter by location or status, and search within the active set.</p>
+            </div>
+          </div>
+
+          <div class="companies-toolbar">
+            <div class="tabs-shell" aria-label="Company tabs controls">
+              <button class="tab-scroll" id="companyTabPrev" type="button" aria-label="Scroll company tabs left">‹</button>
+              <div class="tab-rail" id="companyTabs" role="tablist" aria-label="Company views">
+                <button class="tab-chip is-active" type="button" data-tab="all" aria-selected="true">All</button>
+                <button class="tab-chip" type="button" data-tab="top" aria-selected="false">Top Matches</button>
+                <button class="tab-chip" type="button" data-tab="strong" aria-selected="false">Strong</button>
+                <button class="tab-chip" type="button" data-tab="draft" aria-selected="false">Draft</button>
+                <button class="tab-chip" type="button" data-tab="active" aria-selected="false">Active</button>
+                <button class="tab-chip" type="button" data-tab="remote" aria-selected="false">Remote</button>
+                <button class="tab-chip" type="button" data-tab="india" aria-selected="false">India</button>
+              </div>
+              <button class="tab-scroll" id="companyTabNext" type="button" aria-label="Scroll company tabs right">›</button>
+            </div>
+
+            <form class="filters-panel" id="companyFilters">
+              <label class="filter-field">
+                <span>Search</span>
+                <input class="input" type="text" name="q" placeholder="Search companies, roles, or keywords" value="<%= searchQuery %>" />
+              </label>
+              <label class="filter-field">
+                <span>Location</span>
+                <input class="input" type="text" name="location" placeholder="e.g. London, Ahmedabad, Remote" />
+              </label>
+              <label class="filter-field">
+                <span>Status</span>
+                <select class="input" name="status">
+                  <option value="">Any status</option>
+                  <option value="Draft">Draft</option>
+                  <option value="Active">Active</option>
+                  <option value="Prospect">Prospect</option>
+                  <option value="Warm">Warm</option>
+                </select>
+              </label>
+              <button class="btn secondary filter-submit" type="submit">Apply Filters</button>
+            </form>
+
+            <div class="company-meta-row">
+              <p class="section-hint" id="companyCount">Loading matches...</p>
+              <p class="section-hint company-active-filter" id="companyActiveFilter">Showing all companies</p>
+            </div>
+          </div>
+
+          <div class="company-list" id="companyRows"></div>
+          <p class="hint section-empty" id="companyEmpty">No companies loaded yet.</p>
+        </section>
+
+        <section class="feedback-section">
+          <article class="feedback-card">
+            <div class="feedback-header">
+              <div>
+                <p class="section-label">Improve Your Profile</p>
+                <h2 class="section-title">Get AI Feedback</h2>
+                <p class="section-hint">Paste your CV text to get personalized improvement suggestions</p>
+              </div>
+            </div>
+            <form class="feedback-form" id="feedbackForm">
+              <textarea class="textarea" name="cvText" rows="6" placeholder="Paste your CV text here..."></textarea>
+              <button class="btn primary" type="submit">Get Feedback →</button>
+            </form>
+            <div class="feedback-result" id="feedbackResult"></div>
+          </article>
+        </section>
+      </main>
+    </div>
+    <script src="/app.js"></script>
+  </body>
+</html>
