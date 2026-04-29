@@ -74,6 +74,14 @@ const upload = multer({
 const DOMAIN_OPTIONS_TEXT = DOMAIN_TAXONOMY.map((domain) => domain.label).join(", ");
 const CV_EXTRACTION_TIMEOUT_MS = 20000;
 const AI_REQUEST_TIMEOUT_MS = 30000;
+const MODELS = [
+  "gemini-2.5-flash",
+  "gemini-2.5-flash-lite-preview-06-17",
+  "gemini-2.0-flash",
+  "gemini-2.0-flash-lite",
+  "gemini-1.5-flash",
+  "gemini-1.5-flash-8b"
+];
 
 const getDbErrorMessage = (error) => {
   if (!databaseUrl) {
@@ -141,7 +149,6 @@ const ensureDatabaseReady = async () => {
 
 const analyzeCvDomain = async (text) => {
   const apiKey = process.env.GOOGLE_AI_KEY;
-  const model = process.env.GOOGLE_AI_MODEL || "gemini-2.5-flash";
 
   // Fallback heuristic when Google AI key is not configured.
   if (!apiKey) {
@@ -215,41 +222,26 @@ const analyzeCvDomain = async (text) => {
     };
   }
 
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-
-  const { response, payload } = await fetchJsonWithTimeout(
-    endpoint,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        systemInstruction: {
-          parts: [
-            {
-              text:
-                `You analyze student CVs for internship matching. Choose the best matching domain from this list only: ${DOMAIN_OPTIONS_TEXT}. Respond with JSON only using keys "domain", "keywords", "suggested_roles", "summary", and "feedback_highlights". "domain" must be one exact domain label from the list. "keywords" must be an array of up to 6 technical or role terms. "suggested_roles" must be an array of up to 4 role titles. "summary" must be one sentence. "feedback_highlights" must be an array of 3 concise bullet-style strings.`
-            }
-          ]
-        },
-        contents: [
+  const { payload } = await callGeminiWithFallback({
+    systemInstruction: {
+      parts: [
+        {
+          text:
+            `You analyze student CVs for internship matching. Choose the best matching domain from this list only: ${DOMAIN_OPTIONS_TEXT}. Respond with JSON only using keys "domain", "keywords", "suggested_roles", "summary", and "feedback_highlights". "domain" must be one exact domain label from the list. "keywords" must be an array of up to 6 technical or role terms. "suggested_roles" must be an array of up to 4 role titles. "summary" must be one sentence. "feedback_highlights" must be an array of 3 concise bullet-style strings.`
+        }
+      ]
+    },
+    contents: [
+      {
+        role: "user",
+        parts: [
           {
-            role: "user",
-            parts: [
-              {
-                text: `Analyze this CV text for student opportunity matching.\\n\\nCV:\\n${text.slice(0, 16000)}`
-              }
-            ]
+            text: `Analyze this CV text for student opportunity matching.\\n\\nCV:\\n${text.slice(0, 16000)}`
           }
         ]
-      })
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(payload?.error?.message || "Google AI request failed.");
-  }
+      }
+    ]
+  });
 
   const reply = payload?.candidates?.[0]?.content?.parts?.[0]?.text || "";
   const parsed = parseJsonFromText(reply);
@@ -288,6 +280,56 @@ const fetchJsonWithTimeout = async (url, options = {}, timeoutMs = AI_REQUEST_TI
 
   const payload = await response.json();
   return { response, payload };
+};
+
+const isGeminiQuotaError = (response, payload, error) => {
+  if (response?.status === 429) return true;
+
+  const message = String(payload?.error?.message || error?.message || "").toLowerCase();
+  return message.includes("quota exceeded") || message.includes("resource_exhausted");
+};
+
+const callGeminiWithFallback = async (prompt, timeoutMs = AI_REQUEST_TIMEOUT_MS) => {
+  const apiKey = process.env.GOOGLE_AI_KEY;
+
+  for (const model of MODELS) {
+    console.log("Using model:", model);
+
+    try {
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const { response, payload } = await fetchJsonWithTimeout(
+        endpoint,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(prompt)
+        },
+        timeoutMs
+      );
+
+      if (!response.ok) {
+        if (isGeminiQuotaError(response, payload)) {
+          console.log(`Model quota failed: ${model}`);
+          continue;
+        }
+
+        throw new Error(payload?.error?.message || "Google AI request failed.");
+      }
+
+      return { response, payload };
+    } catch (error) {
+      if (isGeminiQuotaError(null, null, error)) {
+        console.log(`Model quota failed: ${model}`);
+        continue;
+      }
+
+      throw error;
+    }
+  }
+
+  throw new Error("All Gemini models quota exceeded. Try again later.");
 };
 
 const decodeXmlText = (value) =>
@@ -632,7 +674,6 @@ app.post("/api/ai/feedback", async (req, res) => {
     return res.status(400).json({ error: "Missing CV text." });
   }
   const apiKey = process.env.GOOGLE_AI_KEY;
-  const model = process.env.GOOGLE_AI_MODEL || "gemini-2.5-flash";
 
   // Desired structured response keys
   // - next_steps: array of 3 concise suggestions for next life/career steps
@@ -688,35 +729,23 @@ app.post("/api/ai/feedback", async (req, res) => {
     return res.json({ result: { next_steps, improvements, tone_and_skills } });
   }
 
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-
   try {
-    const { response, payload } = await fetchJsonWithTimeout(endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        systemInstruction: {
-          parts: [
-            {
-              text:
-                `You are an expert career coach. Given a student's CV text, respond with a JSON object only containing keys: "next_steps", "improvements", "tone_and_skills". Each value must be an array of up to 3 concise bullet strings. "next_steps" should list personal/career actions they can take next. "improvements" should list actionable CV improvements. "tone_and_skills" should list skills, language, or tone changes to add to the CV.`
-            }
-          ]
-        },
-        contents: [
+    const { payload } = await callGeminiWithFallback({
+      systemInstruction: {
+        parts: [
           {
-            role: "user",
-            parts: [{ text }]
+            text:
+              `You are an expert career coach. Given a student's CV text, respond with a JSON object only containing keys: "next_steps", "improvements", "tone_and_skills". Each value must be an array of up to 3 concise bullet strings. "next_steps" should list personal/career actions they can take next. "improvements" should list actionable CV improvements. "tone_and_skills" should list skills, language, or tone changes to add to the CV.`
           }
         ]
-      })
+      },
+      contents: [
+        {
+          role: "user",
+          parts: [{ text }]
+        }
+      ]
     });
-
-    if (!response.ok) {
-      return res.status(response.status).json({ error: payload?.error || payload });
-    }
 
     const reply = payload?.candidates?.[0]?.content?.parts?.[0]?.text || "";
     let parsed = null;
