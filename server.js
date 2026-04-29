@@ -75,12 +75,18 @@ const DOMAIN_OPTIONS_TEXT = DOMAIN_TAXONOMY.map((domain) => domain.label).join("
 const CV_EXTRACTION_TIMEOUT_MS = 20000;
 const AI_REQUEST_TIMEOUT_MS = 30000;
 const MODELS = [
-  "gemini-2.5-flash",
-  "gemini-2.5-flash-lite-preview-06-17",
-  "gemini-2.0-flash",
-  "gemini-2.0-flash-lite",
-  "gemini-1.5-flash",
-  "gemini-1.5-flash-8b"
+  'gemini-2.5-pro',           // best quality
+  'gemini-2.5-flash',         // fast + smart
+  'gemini-2.5-flash-lite',    // lighter 2.5
+  'gemini-3.1-pro-preview',   // next gen pro
+  'gemini-3.1-flash-lite-preview', // next gen lite
+  'gemini-3-flash-preview',   // next gen flash
+  'gemini-2.0-flash',         // reliable fallback
+  'gemini-2.0-flash-001',     // stable 2.0
+  'gemini-2.0-flash-lite',    // high quota fallback
+  'gemini-2.0-flash-lite-001',// stable lite
+  'gemini-flash-latest',      // alias — always latest flash
+  'gemini-flash-lite-latest', // alias — always latest lite
 ];
 
 const getDbErrorMessage = (error) => {
