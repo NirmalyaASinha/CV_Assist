@@ -26,7 +26,10 @@
             <p class="section-label">Your CV Analysis</p>
             <h1 class="page-title">Match Results</h1>
           </div>
-          <a href="/" class="btn secondary">← Upload Another CV</a>
+          <div class="results-actions">
+            <button class="btn primary" id="autoFeedbackButton" type="button">Get AI Feedback</button>
+            <a href="/" class="btn secondary">← Upload Another CV</a>
+          </div>
         </section>
 
         <section class="analysis-section">
@@ -93,8 +96,26 @@
             <div>
               <p class="section-label">Matched Opportunities</p>
               <h2 class="section-title">Companies Hiring Now</h2>
-              <p class="section-hint">Switch between tab views, filter by location or status, and search within the active set.</p>
+              <p class="section-hint">Scan strongest fits first, narrow by location or status, and open any card for outreach-ready details.</p>
             </div>
+          </div>
+
+          <div class="company-overview" aria-label="Opportunity summary">
+            <article class="overview-card">
+              <p class="overview-label">Visible matches</p>
+              <p class="overview-value" id="overviewVisibleCount">0</p>
+              <p class="overview-note">Ranked companies in the active view</p>
+            </article>
+            <article class="overview-card">
+              <p class="overview-label">Best score</p>
+              <p class="overview-value" id="overviewTopScore">0 pts</p>
+              <p class="overview-note">Highest match score currently shown</p>
+            </article>
+            <article class="overview-card">
+              <p class="overview-label">Top focus area</p>
+              <p class="overview-value overview-value--sm" id="overviewTopDomain">Waiting for results</p>
+              <p class="overview-note">Most common domain across visible matches</p>
+            </article>
           </div>
 
           <div class="companies-toolbar">
@@ -131,7 +152,20 @@
                   <option value="Warm">Warm</option>
                 </select>
               </label>
-              <button class="btn secondary filter-submit" type="submit">Apply Filters</button>
+              <label class="filter-field">
+                <span>Sort</span>
+                <select class="input" name="sort">
+                  <option value="relevance">Relevance</option>
+                  <option value="points-desc">Highest score</option>
+                  <option value="points-asc">Lowest score</option>
+                  <option value="name-asc">Company A-Z</option>
+                  <option value="name-desc">Company Z-A</option>
+                </select>
+              </label>
+              <div class="filter-actions">
+                <button class="btn primary filter-submit" type="submit">Apply Filters</button>
+                <button class="btn tertiary filter-reset" type="reset">Clear</button>
+              </div>
             </form>
 
             <div class="company-meta-row">
@@ -144,22 +178,18 @@
           <p class="hint section-empty" id="companyEmpty">No companies loaded yet.</p>
         </section>
 
-        <section class="feedback-section">
-          <article class="feedback-card">
-            <div class="feedback-header">
+        <div class="modal-overlay" id="assistantModal" hidden>
+          <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="assistantModalTitle">
+            <div class="modal-header">
               <div>
-                <p class="section-label">Improve Your Profile</p>
-                <h2 class="section-title">Get AI Feedback</h2>
-                <p class="section-hint">Paste your CV text to get personalized improvement suggestions</p>
+                <p class="section-label" id="assistantModalLabel">Company Assistant</p>
+                <h2 class="section-title" id="assistantModalTitle">Company details</h2>
               </div>
+              <button class="modal-close" id="assistantModalClose" type="button" aria-label="Close assistant">×</button>
             </div>
-            <form class="feedback-form" id="feedbackForm">
-              <textarea class="textarea" name="cvText" rows="6" placeholder="Paste your CV text here..."></textarea>
-              <button class="btn primary" type="submit">Get Feedback →</button>
-            </form>
-            <div class="feedback-result" id="feedbackResult"></div>
-          </article>
-        </section>
+            <div class="modal-body" id="assistantModalBody"></div>
+          </div>
+        </div>
       </main>
     </div>
     <script src="/app.js"></script>

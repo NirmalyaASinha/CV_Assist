@@ -46,6 +46,10 @@
             <label class="upload-inline">
               <input type="file" name="cv" accept=".pdf,.doc,.docx" required />
               <span>Upload CV</span>
+              <span class="upload-status" id="uploadStatus" aria-live="polite" hidden>
+                <span class="upload-status-dot" aria-hidden="true"></span>
+                <span class="upload-status-text">File ready</span>
+              </span>
             </label>
             <input class="input landing-search" type="text" name="q" placeholder="Search internships or jobs" />
             <button class="btn primary" type="submit">Search</button>
